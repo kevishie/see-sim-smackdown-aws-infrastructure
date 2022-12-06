@@ -11,6 +11,22 @@ Parameters:
   ProjectName:
     Type: String
     Default: see-sim-smackdown
+  VpcCidr:
+    Type: String
+    Description: CIDR block for the VPC
+    Default: "10.22.0.0/16"
+    MinLength: "9"
+    MaxLength: "18"
+    AllowedPattern: "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})"
+    ConstraintDescription: Must be a valid CIDR range of the form x.x.x.x/x.
+  PublicSubnetCidr:
+    Type: String
+    Description: CIDR block for the public subnet
+    MinLength: "9"
+    MaxLength: "18"
+    Default: "10.22.0.0/24"
+    AllowedPattern: "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})"
+    ConstraintDescription: Must be a valid CIDR range of the form x.x.x.x/x.
 
 Resources:
   S3Bucket:
@@ -88,3 +104,91 @@ Resources:
     Properties:
       CloudFrontOriginAccessIdentityConfig:
         Comment: !Sub "access-identity-see-sim-smackdown-spa"
+
+  Network:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcCidr
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      InstanceTenancy: default
+      Tags:
+        - Key: Name
+          Value: Fn::Join [ "-", [ !Ref ProjectName, "network" ]
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: Fn::Join [ "-", [ !Ref ProjectName, "internet-gateway" ]
+
+  GatewayToInternet:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref InternetGateway
+      VpcId: !Ref Network
+
+  PublicSubnetRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref Network
+      Tags:
+        - Key: Name
+          Value: Fn::Join [ "-", [ !Ref ProjectName, "public-subnet-route-table" ]
+
+  PublicSubnetRoute:
+    Type: AWS::EC2::Route
+    DependsOn: GatewayToInternet
+    Properties:
+      RouteTableId: !Ref PublicSubnetRouteTable
+      DestinationCidrBlock: "0.0.0.0/0"
+      GatewayId: !Ref InternetGateway
+
+  PublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Network
+      CidrBlock: !Ref PublicSubnetCidr
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: Fn::Join [ "-", [ !Ref ProjectName, "public-subnet" ]
+
+  PublicSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet
+      RouteTableId: !Ref PublicSubnetRouteTable
+
+  VPNServer:
+    Type: AWS::EC2::Instance
+    Properties:
+      DisableApiTermination: True
+      ImageId: ami-0e2b332e63c56bcb5 # Ubuntu Server 22.04 LTS (HVM), SSD Volume Type (64-bit (Arm))
+      InstanceType: t4g.medium
+      KeyName: root # https://us-east-1.console.aws.amazon.com/ec2/home?region=us-east-1#KeyPairs:
+      SecurityGroupIds:
+        - !Ref VpnSecurityGroup
+      SubnetId: !Ref PublicSubnet
+      Tags:
+        - Key: "vpn-server"
+          Value: "vpn-server"
+
+  # OpenVPN Access Server requires access for inbound traffic on TCP 22 (SSH),
+  # TCP 943 and 443 (web interface), TCP 953 (if you use clustering), and UDP 1194
+  # (OpenVPN UDP port for client communication).
+  VpnSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: vpn-security-group
+      GroupDescription: "Allow udp 1194 and SSH inbound and outbound traffic"
+      SecurityGroupIngress:
+        - IpProtocol: udp
+          FromPort: 1194
+          ToPort: 1194
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
