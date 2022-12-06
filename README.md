@@ -8,12 +8,6 @@ This repository contains files which are used to manage infrastructure on AWS.
 - [Prettier VS Code](https://github.com/prettier/prettier)
 - [Docker](https://www.docker.com/products/docker-desktop)
 
-#### Build Docker image
-
-```sh
-docker build --rm -t see/aws-infrastructure .
-```
-
 #### Deploy
 
 To deploy the sam template
@@ -24,9 +18,9 @@ docker run \
   --rm \
   -v $(pwd):/root/project \
   --workdir=/root/project \
-  --env AWS_ACCESS_KEY_ID=YOUR_AWS_ACCESS_KEY \
-  --env AWS_SECRET_ACCESS_KEY=YOUR_AWS_SECRET_KEY \
-   see/aws-infrastructure bash
+  --env AWS_ACCESS_KEY_ID=YOUR_AWS_ACCESS_KEY_ID \
+  --env AWS_SECRET_ACCESS_KEY=YOUR_AWS_SECRET_ACCESS_KEY \
+  amazon/aws-sam-cli-build-image-python3.9 bash
 ```
 
 Once you have shell access, run the following commands
