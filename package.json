@@ -1,0 +1,26 @@
+{
+  "name": "see-sim-smackdown--infrastructure",
+  "version": "1.0.0",
+  "description": "This repository contains files which are used to manage infrastructure on AWS.",
+  "main": "prettier.config.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kevishie/see-sim-smackdown-aws-infrastructure.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/kevishie/see-sim-smackdown-aws-infrastructure/issues"
+  },
+  "homepage": "https://github.com/kevishie/see-sim-smackdown-aws-infrastructure#readme",
+  "dependencies": {
+    "aws-sdk": "^2.1273.0"
+  },
+  "devDependencies": {
+    "@types/node": "^18.11.14",
+    "typescript": "^4.9.4"
+  }
+}

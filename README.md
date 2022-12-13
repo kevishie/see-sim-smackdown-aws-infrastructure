@@ -12,15 +12,21 @@ This repository contains files which are used to manage infrastructure on AWS.
 
 To deploy the sam template
 
+First build the image (only needs to be done once)
+
+```bash
+docker build -t see/aws-infrastructure .
+```
+
 ```bash
 docker run \
   -it \
   --rm \
   -v $(pwd):/root/project \
   --workdir=/root/project \
-  --env AWS_ACCESS_KEY_ID=YOUR_AWS_ACCESS_KEY_ID \
+  --env AWS_ACCESS_KEY_ID=YOUR_AWS_ACCESS_KEY_ID  \
   --env AWS_SECRET_ACCESS_KEY=YOUR_AWS_SECRET_ACCESS_KEY \
-  amazon/aws-sam-cli-build-image-python3.9 bash
+  see/aws-infrastructure bash
 ```
 
 Once you have shell access, run the following commands

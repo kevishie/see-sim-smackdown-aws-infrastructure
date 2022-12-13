@@ -4,6 +4,6 @@ version=0.1
 stack_name = "see-aws-infrastructure"
 region = "us-east-1"
 confirm_changeset = true
-capabilities = "CAPABILITY_IAM"
+capabilities = "CAPABILITY_NAMED_IAM"
 s3_bucket = "see-aws-awscli-managed-default-samsourcebucket"
 image_repositories = []
