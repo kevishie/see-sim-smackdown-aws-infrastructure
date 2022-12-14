@@ -309,6 +309,11 @@ Resources:
   UserRegistrationLambda:
     Type: AWS::Serverless::Function
     Properties:
+      FunctionUrlConfig:
+        AuthType: NONE
+        Cors:
+          AllowOrigins:
+            - "*"
       Handler: user-registration.handler
       Runtime: nodejs14.x
       Role: !GetAtt UserRegistrationLambdaRole.Arn
@@ -329,3 +334,9 @@ Resources:
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AWSLambdaExecute
         - arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess
+
+Outputs:
+  MyFunctionUrlEndpoint:
+    Description: "UserRegistrationLambda Function URL Endpoint"
+    Value:
+      Fn::GetAtt: UserRegistrationLambdaUrl.FunctionUrl

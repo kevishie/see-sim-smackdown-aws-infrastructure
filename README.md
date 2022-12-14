@@ -18,6 +18,8 @@ First build the image (only needs to be done once)
 docker build -t see/aws-infrastructure .
 ```
 
+Then start the docker container
+
 ```bash
 docker run \
   -it \
