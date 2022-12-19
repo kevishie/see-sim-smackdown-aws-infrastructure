@@ -1,4 +1,4 @@
-AWSTemplateFormatVersion: "2010-09-09"
+AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 
 Description: >
@@ -26,31 +26,31 @@ Parameters:
   VpcCidr:
     Type: String
     Description: CIDR block for the VPC
-    Default: "10.22.0.0/16"
-    MinLength: "9"
-    MaxLength: "18"
+    Default: '10.22.0.0/16'
+    MinLength: '9'
+    MaxLength: '18'
     AllowedPattern: "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})"
     ConstraintDescription: Must be a valid CIDR range of the form x.x.x.x/x.
   PublicSubnetCidr:
     Type: String
     Description: CIDR block for the public subnet
-    MinLength: "9"
-    MaxLength: "18"
-    Default: "10.22.0.0/24"
+    MinLength: '9'
+    MaxLength: '18'
+    Default: '10.22.0.0/24'
     AllowedPattern: "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})"
     ConstraintDescription: Must be a valid CIDR range of the form x.x.x.x/x.
   PrivateSubnetCidr:
     Type: String
     Description: CIDR block for the private subnet
-    MinLength: "9"
-    MaxLength: "18"
-    Default: "10.22.1.0/24"
+    MinLength: '9'
+    MaxLength: '18'
+    Default: '10.22.1.0/24'
     AllowedPattern: "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})"
     ConstraintDescription: Must be a valid CIDR range of the form x.x.x.x/x.
 
 Resources:
   S3Bucket:
-    Type: "AWS::S3::Bucket"
+    Type: 'AWS::S3::Bucket'
     Properties:
       BucketName: !Ref ProjectName
       PublicAccessBlockConfiguration:
@@ -63,10 +63,10 @@ Resources:
       BucketEncryption:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
-              SSEAlgorithm: "AES256"
+              SSEAlgorithm: 'AES256'
 
   BucketPolicy:
-    Type: "AWS::S3::BucketPolicy"
+    Type: 'AWS::S3::BucketPolicy'
     Properties:
       PolicyDocument:
         Id: SEESimSmackdownCloudFrontS3AccessPolicy
@@ -76,16 +76,16 @@ Resources:
             Effect: Allow
             Principal:
               CanonicalUser: !GetAtt CFOriginAccessIdentity.S3CanonicalUserId
-            Action: "s3:GetObject*"
+            Action: 's3:GetObject*'
             Resource: !Join
-              - ""
-              - - "arn:aws:s3:::"
+              - ''
+              - - 'arn:aws:s3:::'
                 - !Ref S3Bucket
                 - /*
       Bucket: !Ref S3Bucket
 
   CloudFrontDistribution:
-    Type: "AWS::CloudFront::Distribution"
+    Type: 'AWS::CloudFront::Distribution'
     DependsOn:
       - CFOriginAccessIdentity
     Properties:
@@ -94,7 +94,7 @@ Resources:
           - DomainName: !GetAtt S3Bucket.RegionalDomainName
             Id: SEESimSmackdownS3Origin
             S3OriginConfig:
-              OriginAccessIdentity: !Sub "origin-access-identity/cloudfront/${CFOriginAccessIdentity}"
+              OriginAccessIdentity: !Sub 'origin-access-identity/cloudfront/${CFOriginAccessIdentity}'
         Enabled: true
         DefaultRootObject: index.html
         DefaultCacheBehavior:
@@ -118,12 +118,12 @@ Resources:
         HttpVersion: http2
 
   CFOriginAccessIdentity:
-    Type: "AWS::CloudFront::CloudFrontOriginAccessIdentity"
+    Type: 'AWS::CloudFront::CloudFrontOriginAccessIdentity'
     DependsOn:
       - S3Bucket
     Properties:
       CloudFrontOriginAccessIdentityConfig:
-        Comment: !Sub "access-identity-see-sim-smackdown-spa"
+        Comment: !Sub 'access-identity-see-sim-smackdown-spa'
 
   Network:
     Type: AWS::EC2::VPC
@@ -162,7 +162,7 @@ Resources:
     DependsOn: GatewayToInternet
     Properties:
       RouteTableId: !Ref PublicSubnetRouteTable
-      DestinationCidrBlock: "0.0.0.0/0"
+      DestinationCidrBlock: '0.0.0.0/0'
       GatewayId: !Ref InternetGateway
 
   PublicSubnet:
@@ -207,7 +207,7 @@ Resources:
     DependsOn: AZANatGateway
     Properties:
       RouteTableId: !Ref PrivateSubnetRouteTable
-      DestinationCidrBlock: "0.0.0.0/0"
+      DestinationCidrBlock: '0.0.0.0/0'
       NatGatewayId: !Ref AZANatGateway
 
   PrivateSubnet:
@@ -237,8 +237,8 @@ Resources:
         - !GetAtt VpnSecurityGroup.GroupId
       SubnetId: !GetAtt PublicSubnet.SubnetId
       Tags:
-        - Key: "vpn-server"
-          Value: "vpn-server"
+        - Key: 'vpn-server'
+          Value: 'vpn-server'
 
   # OpenVPN Access Server requires access for inbound traffic on TCP 22 (SSH),
   # TCP 943 and 443 (web interface), TCP 953 (if you use clustering), and UDP 1194
@@ -246,7 +246,7 @@ Resources:
   VpnSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: "Allow udp 1194 and SSH inbound and outbound traffic"
+      GroupDescription: 'Allow udp 1194 and SSH inbound and outbound traffic'
       VpcId: !Ref Network
       SecurityGroupIngress:
         - IpProtocol: udp
@@ -269,14 +269,14 @@ Resources:
         - !GetAtt RTISecurityGroup.GroupId
       SubnetId: !GetAtt PrivateSubnet.SubnetId
       Tags:
-        - Key: "rti-server"
-          Value: "rti-server"
+        - Key: 'rti-server'
+          Value: 'rti-server'
 
   # Pitch pRTI uses tcp port 8989
   RTISecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: "Allow tcp 8989 and SSH inbound and outbound traffic"
+      GroupDescription: 'Allow tcp 8989 and SSH inbound and outbound traffic'
       VpcId: !Ref Network
       SecurityGroupIngress:
         - IpProtocol: tcp
@@ -309,34 +309,48 @@ Resources:
   UserRegistrationLambda:
     Type: AWS::Serverless::Function
     Properties:
+      MemorySize: 1024
+      Timeout: 10
       FunctionUrlConfig:
         AuthType: NONE
         Cors:
           AllowOrigins:
-            - "*"
+            - '*'
+      CodeUri: src/
       Handler: user-registration.handler
       Runtime: nodejs14.x
       Role: !GetAtt UserRegistrationLambdaRole.Arn
+      Environment:
+        Variables:
+          DYNAMODB_TABLE: !Ref DynamoDBTableName
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: 'es2020'
+        Sourcemap: true
+        EntryPoints:
+          - user-registration.ts
 
   UserRegistrationLambdaRole:
-    Type: "AWS::IAM::Role"
+    Type: 'AWS::IAM::Role'
     Properties:
       RoleName: !Sub lambda-role
       AssumeRolePolicyDocument:
-        Version: "2012-10-17"
+        Version: '2012-10-17'
         Statement:
-          - Effect: "Allow"
+          - Effect: 'Allow'
             Principal:
               Service:
-                - "lambda.amazonaws.com"
+                - 'lambda.amazonaws.com'
             Action:
-              - "sts:AssumeRole"
+              - 'sts:AssumeRole'
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AWSLambdaExecute
         - arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess
 
 Outputs:
   MyFunctionUrlEndpoint:
-    Description: "UserRegistrationLambda Function URL Endpoint"
+    Description: 'UserRegistrationLambda Function URL Endpoint'
     Value:
       Fn::GetAtt: UserRegistrationLambdaUrl.FunctionUrl
