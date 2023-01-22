@@ -1,59 +1,69 @@
 import { DynamoDB } from 'aws-sdk';
 import { randomUUID } from 'crypto';
-import { IsString, IsDefined, validate } from 'class-validator';
 import { Context, APIGatewayProxyResult, APIGatewayEvent } from 'aws-lambda';
+import * as bcrypt from 'bcryptjs';
 
 const dynamoDb = new DynamoDB.DocumentClient();
 
-export class CreateUserBody {
-  @IsDefined()
-  @IsString()
+export class User {
   firstName: string;
-
-  @IsDefined()
-  @IsString()
   lastName: string;
-
-  @IsDefined()
-  @IsString()
   email: string;
-
-  @IsDefined()
-  @IsString()
   password: string;
+  accessCode: string;
 }
 
-export const userRegister = async (
-  event: { body: CreateUserBody },
-  context: Context
-): Promise<APIGatewayProxyResult> => {
-  console.log(event);
-  console.log(event.body);
-  const user = event.body;
+export const handler = async (event: APIGatewayEvent, context: Context): Promise<APIGatewayProxyResult> => {
+  if (!event?.body) {
+    return {
+      statusCode: 400,
+      body: JSON.stringify({
+        message: 'Invalid request',
+      }),
+    };
+  }
 
-  validate(user).then((errors) => {
-    if (errors.length > 0) {
-      return {
-        statusCode: 422,
-        body: JSON.stringify({
-          message: 'Validation failed',
-          errors,
-        }),
-      };
-    }
-  });
+  const user: User = JSON.parse(event.body);
+
+  if (!user?.accessCode || user.accessCode.toUpperCase() !== 'SEE2023') {
+    return {
+      statusCode: 400,
+      body: JSON.stringify({
+        message: 'A valid access code is required',
+      }),
+    };
+  }
+
+  if (!user?.email) {
+    return {
+      statusCode: 400,
+      body: JSON.stringify({
+        message: 'Email required',
+      }),
+    };
+  }
+
+  if (!user?.password) {
+    return {
+      statusCode: 400,
+      body: JSON.stringify({
+        message: 'Password required',
+      }),
+    };
+  }
 
   const getParams = {
     TableName: process.env.DYNAMODB_TABLE as string,
     Key: {
       PK: user.email,
+      SK: user.email,
     },
   };
 
   // Check to see if user already exists
   const userExists = await dynamoDb.get(getParams).promise();
 
-  if (userExists.Item) {
+  if (userExists?.Item) {
     return {
       statusCode: 409,
       body: JSON.stringify({
@@ -63,14 +73,18 @@ export const userRegister = async (
   }
 
   // Create a copy of the user object to avoid modifying the original
-  const modifiedUser = { ...user } as CreateUserBody;
+  const modifiedUser = { ...user } as User;
+
+  // Hash the user's password
+  const saltRounds = 10;
+  modifiedUser.password = await bcrypt.hash(user.password, saltRounds);
 
   // Create a new user in the database
   const params = {
     TableName: process.env.DYNAMODB_TABLE as string,
     Item: {
       PK: modifiedUser.email,
-      SK: Math.floor(Date.now() / 1000),
+      SK: modifiedUser.email,
       ...modifiedUser,
     },
   };
