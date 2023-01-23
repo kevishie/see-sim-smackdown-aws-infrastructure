@@ -422,8 +422,58 @@ Resources:
         - arn:aws:iam::aws:policy/AWSLambdaExecute
         - arn:aws:iam::aws:policy/AmazonDynamoDBReadOnlyAccess
 
+  # Lambda function living on /auth/GetUserlogin
+  OpenVPNGetUserLogin:
+    Type: AWS::Serverless::Function
+    Properties:
+      MemorySize: 1024
+      Timeout: 10
+      FunctionUrlConfig:
+        AuthType: NONE
+        Cors:
+          AllowOrigins:
+            - '*'
+      CodeUri: src/
+      Handler: openvpn-auth-get-user-login.handler
+      Runtime: nodejs14.x
+      Role: !GetAtt OpenVPNGetUserLoginRole.Arn
+      Environment:
+        Variables:
+          DYNAMODB_TABLE: !Ref DynamoDBTableName
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: 'es2020'
+        Sourcemap: true
+        EntryPoints:
+          - openvpn-auth-get-user-login.ts
+
+  OpenVPNGetUserLoginRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: 'Allow'
+            Principal:
+              Service:
+                - 'lambda.amazonaws.com'
+            Action:
+              - 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AWSLambdaExecute
+        - arn:aws:iam::aws:policy/AmazonDynamoDBReadOnlyAccess
 Outputs:
-  MyFunctionUrlEndpoint:
+  UserRegistrationLambdaUrlEndpoint:
     Description: 'UserRegistrationLambda Function URL Endpoint'
     Value:
       Fn::GetAtt: UserRegistrationLambdaUrl.FunctionUrl
+  UserLoginLambdaUrlEndpoint:
+    Description: 'UserLoginLambda Function URL Endpoint'
+    Value:
+      Fn::GetAtt: UserLoginLambdaUrl.FunctionUrl
+  OpenVPNGetUserLoginLamdbaUrlEndpoint:
+    Description: 'OpenVPNGetUserLogin Function URL Endpoint'
+    Value:
+      Fn::GetAtt: OpenVPNGetUserLoginUrl.FunctionUrl
