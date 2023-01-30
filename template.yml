@@ -358,21 +358,7 @@ Resources:
       GroupDescription: 'Allow tcp 8989 and SSH inbound and outbound traffic'
       VpcId: !Ref Network
       SecurityGroupIngress:
-        - IpProtocol: tcp
-          FromPort: 45913
-          ToPort: 45913
-          CidrIp: 0.0.0.0/0
-        - IpProtocol: tcp
-          FromPort: 8989
-          ToPort: 8989
-          CidrIp: 0.0.0.0/0
-        - IpProtocol: tcp
-          FromPort: 1099
-          ToPort: 1099
-          CidrIp: 0.0.0.0/0
-        - IpProtocol: tcp
-          FromPort: 22
-          ToPort: 22
+        - IpProtocol: '-1'
           CidrIp: 0.0.0.0/0
 
   DynamoDBTable:
@@ -402,6 +388,8 @@ Resources:
         AuthType: NONE
         Cors:
           AllowOrigins:
+            - '*'
+          AllowMethods:
             - '*'
       CodeUri: src/
       Handler: user-registration.handler
@@ -446,6 +434,8 @@ Resources:
         Cors:
           AllowOrigins:
             - '*'
+          AllowMethods:
+            - '*'
       CodeUri: src/
       Handler: user-login.handler
       Runtime: nodejs14.x
@@ -488,6 +478,8 @@ Resources:
         AuthType: NONE
         Cors:
           AllowOrigins:
+            - '*'
+          AllowMethods:
             - '*'
       CodeUri: src/
       Handler: openvpn-auth-get-user-login.handler
