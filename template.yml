@@ -555,7 +555,8 @@ Resources:
               - 'sts:AssumeRole'
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AWSLambdaExecute
-        - arn:aws:iam::aws:policy/AmazonDynamoDBReadOnlyAccess
+        - arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess
+
   # Lambda function living on /auth/GetUserlogin
   OpenVPNGetUserLogin:
     Type: AWS::Serverless::Function
