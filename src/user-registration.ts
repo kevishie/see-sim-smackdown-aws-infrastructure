@@ -5,7 +5,7 @@ import * as bcrypt from 'bcryptjs';
 
 const dynamoDb = new DynamoDB.DocumentClient();
 
-export class User {
+interface User {
   firstName: string;
   lastName: string;
   email: string;

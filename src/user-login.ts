@@ -3,19 +3,19 @@ import * as bcrypt from 'bcryptjs';
 
 const dynamoDb = new DynamoDB.DocumentClient();
 
-export class UserLogin {
+interface UserLoginInput {
   username: string;
   password: string;
 }
 
 export const handler = async (event: any) => {
-  const user: UserLogin = JSON.parse(event.body);
+  const input: UserLoginInput = JSON.parse(event.body);
 
   const params = {
     TableName: process.env.DYNAMODB_TABLE as string,
     Key: {
-      PK: user.username,
-      SK: user.username,
+      PK: input.username,
+      SK: input.username,
     },
   };
 
@@ -30,7 +30,7 @@ export const handler = async (event: any) => {
   }
 
   // Compare the provided password with the stored password
-  const isPasswordCorrect = await bcrypt.compare(user.password, storedUser.password);
+  const isPasswordCorrect = await bcrypt.compare(input.password, storedUser.password);
 
   if (!isPasswordCorrect) {
     return {
