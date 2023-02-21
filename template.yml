@@ -4,6 +4,8 @@ Transform: AWS::Serverless-2016-10-31
 Description: >
   Creates the infrastructure to host SEE SIM Smackdown
       - S3 Bucket
+      - Route 53
+      - DynamoDB
       - CloudFront distribution
       - VPC
       - Public Subnet
@@ -51,6 +53,14 @@ Parameters:
     Type: String
     Description: The domain name of the app
     Default: simulationexplorationexperience.com
+  ApiDomainName:
+    Type: String
+    Description: The domain name of the API
+    Default: api.simulationexplorationexperience.com
+  VPNDomainName:
+    Type: String
+    Description: The domain name of the VPN
+    Default: vpn.simulationexplorationexperience.com
 
 Resources:
   Route53HostedZone:
@@ -69,9 +79,29 @@ Resources:
           Type: A
           AliasTarget:
             HostedZoneId: Z2FDTNDATAQYW2
-            DNSName: !GetAtt
-              - CloudFrontDistribution
-              - DomainName
+            DNSName: !GetAtt CloudFrontDistribution.DomainName
+
+  Route53RecordApi:
+    Type: 'AWS::Route53::RecordSetGroup'
+    Properties:
+      HostedZoneId: !Ref Route53HostedZone
+      RecordSets:
+        - Name: !Ref ApiDomainName
+          Type: A
+          AliasTarget:
+            HostedZoneId: Z2FDTNDATAQYW2
+            DNSName: !GetAtt ApiGatewayApiCustomDomain.DistributionDomainName
+
+  Route53RecordVpn:
+    Type: 'AWS::Route53::RecordSetGroup'
+    Properties:
+      HostedZoneId: !Ref Route53HostedZone
+      RecordSets:
+        - Name: !Ref VPNDomainName
+          Type: A
+          AliasTarget:
+            HostedZoneId: Z2FDTNDATAQYW2
+            DNSName: !GetAtt ApiGatewayVpnCustomDomain.DistributionDomainName
 
   SSLCertificate:
     Type: 'AWS::CertificateManager::Certificate'
@@ -379,25 +409,69 @@ Resources:
         WriteCapacityUnits: 1
       TableName: !Ref DynamoDBTableName
 
+  ApiGatewayApiCustomDomain:
+    Type: AWS::ApiGateway::DomainName
+    Properties:
+      DomainName: !Ref ApiDomainName
+      EndpointConfiguration:
+        Types:
+          - EDGE
+      CertificateArn: !Ref SSLCertificateWildcard
+
+  ApiGatewayApiBasePathMapping:
+    Type: AWS::ApiGateway::BasePathMapping
+    Properties:
+      DomainName: !Ref ApiGatewayApiCustomDomain
+      BasePath: ''
+      RestApiId: !Ref ApiGatewayApi
+      Stage: prod
+
+  ApiGatewayApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: prod
+
+  ApiGatewayVpnCustomDomain:
+    Type: AWS::ApiGateway::DomainName
+    Properties:
+      DomainName: !Ref VPNDomainName
+      EndpointConfiguration:
+        Types:
+          - EDGE
+      CertificateArn: !Ref SSLCertificateWildcard
+
+  ApiGatewayVpnBasePathMapping:
+    Type: AWS::ApiGateway::BasePathMapping
+    Properties:
+      DomainName: !Ref ApiGatewayVpnCustomDomain
+      BasePath: ''
+      RestApiId: !Ref ApiGatewayVpn
+      Stage: prod
+
+  ApiGatewayVpn:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: prod
+
   UserRegistrationLambda:
     Type: AWS::Serverless::Function
     Properties:
       MemorySize: 1024
       Timeout: 10
-      FunctionUrlConfig:
-        AuthType: NONE
-        Cors:
-          AllowOrigins:
-            - '*'
-          AllowMethods:
-            - '*'
       CodeUri: src/
       Handler: user-registration.handler
       Runtime: nodejs14.x
-      Role: !GetAtt UserRegistrationLambdaRole.Arn
+      Role: !GetAtt ApiLambdaRole.Arn
       Environment:
         Variables:
           DYNAMODB_TABLE: !Ref DynamoDBTableName
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            Path: /register
+            Method: post
+            RestApiId: !Ref ApiGatewayApi
     Metadata:
       BuildMethod: esbuild
       BuildProperties:
@@ -407,42 +481,25 @@ Resources:
         EntryPoints:
           - user-registration.ts
 
-  UserRegistrationLambdaRole:
-    Type: 'AWS::IAM::Role'
-    Properties:
-      RoleName: !Sub lambda-role
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: 'Allow'
-            Principal:
-              Service:
-                - 'lambda.amazonaws.com'
-            Action:
-              - 'sts:AssumeRole'
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/AWSLambdaExecute
-        - arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess
-
   UserLoginLambda:
     Type: AWS::Serverless::Function
     Properties:
       MemorySize: 1024
       Timeout: 10
-      FunctionUrlConfig:
-        AuthType: NONE
-        Cors:
-          AllowOrigins:
-            - '*'
-          AllowMethods:
-            - '*'
       CodeUri: src/
       Handler: user-login.handler
       Runtime: nodejs14.x
-      Role: !GetAtt UserLoginLambdaRole.Arn
+      Role: !GetAtt ApiLambdaRole.Arn
       Environment:
         Variables:
           DYNAMODB_TABLE: !Ref DynamoDBTableName
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            Path: /login
+            Method: post
+            RestApiId: !Ref ApiGatewayApi
     Metadata:
       BuildMethod: esbuild
       BuildProperties:
@@ -452,42 +509,26 @@ Resources:
         EntryPoints:
           - user-login.ts
 
-  UserLoginLambdaRole:
-    Type: 'AWS::IAM::Role'
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: 'Allow'
-            Principal:
-              Service:
-                - 'lambda.amazonaws.com'
-            Action:
-              - 'sts:AssumeRole'
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/AWSLambdaExecute
-        - arn:aws:iam::aws:policy/AmazonDynamoDBReadOnlyAccess
-
   UserPasswordResetStartLambda:
     Type: AWS::Serverless::Function
     Properties:
       MemorySize: 1024
       Timeout: 10
-      FunctionUrlConfig:
-        AuthType: NONE
-        Cors:
-          AllowOrigins:
-            - '*'
-          AllowMethods:
-            - '*'
       CodeUri: src/
       Handler: user-password-reset-start.handler
       Runtime: nodejs14.x
-      Role: !GetAtt UserPasswordResetStartLambdaRole.Arn
+      Role: !GetAtt ApiLambdaRole.Arn
       Environment:
         Variables:
           DYNAMODB_TABLE: !Ref DynamoDBTableName
           SENDGRID_API_KEY: '{{resolve:secretsmanager:SENDGRID_API_KEY:SecretString:SENDGRID_API_KEY}}'
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            Path: /password-reset-start
+            Method: post
+            RestApiId: !Ref ApiGatewayApi
     Metadata:
       BuildMethod: esbuild
       BuildProperties:
@@ -497,41 +538,25 @@ Resources:
         EntryPoints:
           - user-password-reset-start.ts
 
-  UserPasswordResetStartLambdaRole:
-    Type: 'AWS::IAM::Role'
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: 'Allow'
-            Principal:
-              Service:
-                - 'lambda.amazonaws.com'
-            Action:
-              - 'sts:AssumeRole'
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/AWSLambdaExecute
-        - arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess
-
   UserPasswordResetFinishLambda:
     Type: AWS::Serverless::Function
     Properties:
       MemorySize: 1024
       Timeout: 10
-      FunctionUrlConfig:
-        AuthType: NONE
-        Cors:
-          AllowOrigins:
-            - '*'
-          AllowMethods:
-            - '*'
       CodeUri: src/
       Handler: user-password-reset-finish.handler
       Runtime: nodejs14.x
-      Role: !GetAtt UserPasswordResetFinishLambdaRole.Arn
+      Role: !GetAtt ApiLambdaRole.Arn
       Environment:
         Variables:
           DYNAMODB_TABLE: !Ref DynamoDBTableName
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            Path: /password-reset-finish
+            Method: post
+            RestApiId: !Ref ApiGatewayApi
     Metadata:
       BuildMethod: esbuild
       BuildProperties:
@@ -541,9 +566,39 @@ Resources:
         EntryPoints:
           - user-password-reset-finish.ts
 
-  UserPasswordResetFinishLambdaRole:
+  # Lambda function living on /auth/GetUserlogin
+  OpenVPNGetUserLogin:
+    Type: AWS::Serverless::Function
+    Properties:
+      MemorySize: 1024
+      Timeout: 10
+      CodeUri: src/
+      Handler: openvpn-auth-get-user-login.handler
+      Runtime: nodejs14.x
+      Role: !GetAtt ApiLambdaRole.Arn
+      Environment:
+        Variables:
+          DYNAMODB_TABLE: !Ref DynamoDBTableName
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            Path: /
+            Method: get
+            RestApiId: !Ref ApiGatewayVpn
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: 'es2020'
+        Sourcemap: true
+        EntryPoints:
+          - openvpn-auth-get-user-login.ts
+
+  ApiLambdaRole:
     Type: 'AWS::IAM::Role'
     Properties:
+      RoleName: !Sub api-lambda-role
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -556,61 +611,3 @@ Resources:
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AWSLambdaExecute
         - arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess
-
-  # Lambda function living on /auth/GetUserlogin
-  OpenVPNGetUserLogin:
-    Type: AWS::Serverless::Function
-    Properties:
-      MemorySize: 1024
-      Timeout: 10
-      FunctionUrlConfig:
-        AuthType: NONE
-        Cors:
-          AllowOrigins:
-            - '*'
-          AllowMethods:
-            - '*'
-      CodeUri: src/
-      Handler: openvpn-auth-get-user-login.handler
-      Runtime: nodejs14.x
-      Role: !GetAtt OpenVPNGetUserLoginRole.Arn
-      Environment:
-        Variables:
-          DYNAMODB_TABLE: !Ref DynamoDBTableName
-    Metadata:
-      BuildMethod: esbuild
-      BuildProperties:
-        Minify: true
-        Target: 'es2020'
-        Sourcemap: true
-        EntryPoints:
-          - openvpn-auth-get-user-login.ts
-
-  OpenVPNGetUserLoginRole:
-    Type: 'AWS::IAM::Role'
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: 'Allow'
-            Principal:
-              Service:
-                - 'lambda.amazonaws.com'
-            Action:
-              - 'sts:AssumeRole'
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/AWSLambdaExecute
-        - arn:aws:iam::aws:policy/AmazonDynamoDBReadOnlyAccess
-Outputs:
-  UserRegistrationLambdaUrlEndpoint:
-    Description: 'UserRegistrationLambda Function URL Endpoint'
-    Value:
-      Fn::GetAtt: UserRegistrationLambdaUrl.FunctionUrl
-  UserLoginLambdaUrlEndpoint:
-    Description: 'UserLoginLambda Function URL Endpoint'
-    Value:
-      Fn::GetAtt: UserLoginLambdaUrl.FunctionUrl
-  OpenVPNGetUserLoginLamdbaUrlEndpoint:
-    Description: 'OpenVPNGetUserLogin Function URL Endpoint'
-    Value:
-      Fn::GetAtt: OpenVPNGetUserLoginUrl.FunctionUrl
