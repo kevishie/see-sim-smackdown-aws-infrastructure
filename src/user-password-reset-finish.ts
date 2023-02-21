@@ -9,10 +9,17 @@ interface PasswordResetInput {
   token: string;
 }
 
+const corsHeaders = {
+  'Access-Control-Allow-Headers': '*',
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'OPTIONS,POST,GET',
+};
+
 export const handler = async (event: any) => {
   if (!event?.body) {
     return {
       statusCode: 400,
+      headers: corsHeaders,
       body: JSON.stringify({
         message: 'Invalid request',
       }),
@@ -25,6 +32,7 @@ export const handler = async (event: any) => {
   } catch (e) {
     return {
       statusCode: 400,
+      headers: corsHeaders,
       body: JSON.stringify({
         message: 'Invalid JSON',
       }),
@@ -36,6 +44,7 @@ export const handler = async (event: any) => {
   if (!input?.username || !input?.password || !input?.token) {
     return {
       statusCode: 400,
+      headers: corsHeaders,
       body: JSON.stringify({
         message: 'Missing required field(s)',
       }),
@@ -56,6 +65,7 @@ export const handler = async (event: any) => {
   if (!passwordResetRequest) {
     return {
       statusCode: 400,
+      headers: corsHeaders,
       body: JSON.stringify({
         message: 'Sorry, it looks like you may have entered the wrong code. Please check your code and try again.',
       }),
@@ -68,6 +78,7 @@ export const handler = async (event: any) => {
   if (now > expires) {
     return {
       statusCode: 400,
+      headers: corsHeaders,
       body: JSON.stringify({
         message: 'Sorry, it looks like your code has expired. Please request a new code and try again.',
       }),
@@ -87,6 +98,7 @@ export const handler = async (event: any) => {
   if (!userExists?.Item) {
     return {
       statusCode: 400,
+      headers: corsHeaders,
       body: JSON.stringify({
         message: 'Sorry, it looks like you may have entered the wrong code. Please check your code and try again.',
       }),
@@ -132,5 +144,6 @@ export const handler = async (event: any) => {
 
   return {
     statusCode: 200,
+    headers: corsHeaders,
   };
 };

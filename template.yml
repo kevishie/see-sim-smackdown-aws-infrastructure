@@ -430,6 +430,10 @@ Resources:
     Type: AWS::Serverless::Api
     Properties:
       StageName: prod
+      Cors:
+        AllowOrigin: "'*'"
+        AllowHeaders: "'*'"
+        AllowMethods: "'POST,GET,OPTIONS'"
 
   ApiGatewayVpnCustomDomain:
     Type: AWS::ApiGateway::DomainName

@@ -8,6 +8,12 @@ interface UserLoginInput {
   password: string;
 }
 
+const corsHeaders = {
+  'Access-Control-Allow-Headers': '*',
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'OPTIONS,POST,GET',
+};
+
 export const handler = async (event: any) => {
   const input: UserLoginInput = JSON.parse(event.body);
 
@@ -25,6 +31,7 @@ export const handler = async (event: any) => {
   if (!storedUser) {
     return {
       statusCode: 401,
+      headers: corsHeaders,
       body: JSON.stringify({ message: 'Username or password is incorrect' }),
     };
   }
@@ -35,12 +42,14 @@ export const handler = async (event: any) => {
   if (!isPasswordCorrect) {
     return {
       statusCode: 401,
+      headers: corsHeaders,
       body: JSON.stringify({ message: 'Username or password is incorrect' }),
     };
   }
 
   return {
     statusCode: 200,
+    headers: corsHeaders,
     body: JSON.stringify({ message: 'User authenticated successfully' }),
   };
 };

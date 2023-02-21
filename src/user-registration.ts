@@ -13,10 +13,17 @@ interface User {
   accessCode: string;
 }
 
+const corsHeaders = {
+  'Access-Control-Allow-Headers': '*',
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'OPTIONS,POST,GET',
+};
+
 export const handler = async (event: APIGatewayEvent, context: Context): Promise<APIGatewayProxyResult> => {
   if (!event?.body) {
     return {
       statusCode: 400,
+      headers: corsHeaders,
       body: JSON.stringify({
         message: 'Invalid request',
       }),
@@ -28,6 +35,7 @@ export const handler = async (event: APIGatewayEvent, context: Context): Promise
   if (!user?.accessCode || user.accessCode.toUpperCase() !== 'SEE2023') {
     return {
       statusCode: 400,
+      headers: corsHeaders,
       body: JSON.stringify({
         message: 'A valid access code is required',
       }),
@@ -37,6 +45,7 @@ export const handler = async (event: APIGatewayEvent, context: Context): Promise
   if (!user?.email) {
     return {
       statusCode: 400,
+      headers: corsHeaders,
       body: JSON.stringify({
         message: 'Email required',
       }),
@@ -46,6 +55,7 @@ export const handler = async (event: APIGatewayEvent, context: Context): Promise
   if (!user?.password) {
     return {
       statusCode: 400,
+      headers: corsHeaders,
       body: JSON.stringify({
         message: 'Password required',
       }),
@@ -66,6 +76,7 @@ export const handler = async (event: APIGatewayEvent, context: Context): Promise
   if (userExists?.Item) {
     return {
       statusCode: 409,
+      headers: corsHeaders,
       body: JSON.stringify({
         message: 'User already exists',
       }),
@@ -97,6 +108,11 @@ export const handler = async (event: APIGatewayEvent, context: Context): Promise
 
   return {
     statusCode: 200,
+    headers: {
+      'Access-Control-Allow-Headers': '*',
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'OPTIONS,POST,GET',
+    },
     body: JSON.stringify({
       uuid: randomUUID(),
     }),

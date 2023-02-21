@@ -8,10 +8,17 @@ interface PasswordResetInput {
   username: string;
 }
 
+const corsHeaders = {
+  'Access-Control-Allow-Headers': '*',
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'OPTIONS,POST,GET',
+};
+
 export const handler = async (event: any) => {
   if (!event?.body) {
     return {
       statusCode: 400,
+      headers: corsHeaders,
       body: JSON.stringify({
         message: 'Invalid request',
       }),
@@ -23,6 +30,7 @@ export const handler = async (event: any) => {
   if (!input?.username) {
     return {
       statusCode: 400,
+      headers: corsHeaders,
       body: JSON.stringify({
         message: 'Username required',
       }),
@@ -45,6 +53,7 @@ export const handler = async (event: any) => {
   if (!storedUser) {
     return {
       statusCode: 200,
+      headers: corsHeaders,
     };
   }
 
@@ -91,5 +100,6 @@ export const handler = async (event: any) => {
 
   return {
     statusCode: 200,
+    headers: corsHeaders,
   };
 };
