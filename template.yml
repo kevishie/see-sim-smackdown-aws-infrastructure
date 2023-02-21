@@ -4,7 +4,7 @@ Transform: AWS::Serverless-2016-10-31
 Description: >
   Creates the infrastructure to host SEE SIM Smackdown
       - S3 Bucket
-      - Route 53
+      - Route53
       - DynamoDB
       - CloudFront distribution
       - VPC
@@ -12,6 +12,8 @@ Description: >
       - Private Subnet
       - EC2 (VPN)
       - EC2 (RTI)
+      - API Gateways
+      - Lambdas
 
 Metadata:
   AWS::ServerlessRepo::Application:
@@ -583,13 +585,16 @@ Resources:
       Environment:
         Variables:
           DYNAMODB_TABLE: !Ref DynamoDBTableName
+          OPENVPN_CLIENT_CERT: '{{resolve:secretsmanager:OPENVPN_CLIENT_CERT}}'
       Events:
         ApiEvent:
           Type: Api
           Properties:
-            Path: /
-            Method: get
+            Path: /{proxy+}
+            Method: ANY
             RestApiId: !Ref ApiGatewayVpn
+            RequestParameters:
+              - method.request.header.Authorization
     Metadata:
       BuildMethod: esbuild
       BuildProperties:
