@@ -320,6 +320,9 @@ Resources:
         - Key: 'vpn-server'
           Value: 'vpn-server'
       IamInstanceProfile: !Ref VpnInstanceProfile
+      # Source/destination checking
+      # Disabled this check
+      SourceDestCheck: false
 
   # OpenVPN Access Server requires access for inbound traffic on TCP 22 (SSH),
   # TCP 943 and 443 (web interface), TCP 953 (if you use clustering), and UDP 1194
@@ -338,6 +341,14 @@ Resources:
           FromPort: 22
           ToPort: 22
           CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 0
+          ToPort: 65535
+          CidrIp: !Ref PrivateSubnetCidr
+        - IpProtocol: udp
+          FromPort: 0
+          ToPort: 65535
+          CidrIp: !Ref PrivateSubnetCidr
 
   VpnInstanceProfile:
     Type: AWS::IAM::InstanceProfile
